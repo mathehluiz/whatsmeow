@@ -504,6 +504,18 @@ func (cli *Client) handleNotification(ctx context.Context, node *waBinary.Node) 
 		cli.handleMexNotification(ctx, node)
 	case "status":
 		cli.handleStatusNotification(ctx, node)
+	case "passkey_prologue_request":
+		cli.handlePasskeyNotification(ctx, node)
+	case "crsc_continuation":
+		go cli.tryHandlePasskeyContinuationNotification(ctx, node)
+	case "companion_reg_refresh":
+		_, refresh := node.GetOptionalChildByTag("companion_reg_refresh")
+		_, rotateQR := node.GetOptionalChildByTag("pair-device-rotate-qr")
+		if refresh || rotateQR {
+			cli.rotateADVSecret(ctx)
+		} else {
+			cli.Log.Debugf("Unrecognized companion reg refresh notification: %s", node)
+		}
 	// Other types: business, disappearing_mode, server, status, pay, psa
 	default:
 		cli.Log.Debugf("Unhandled notification with type %s", notifType)
